@@ -1,0 +1,118 @@
+Основные команды git:
+
+#инициализация настроек
+git config --global user.name "The Best User"
+git config --global user.email vvp@example.com
+
+#создание репозитория в уже существующей папке
+git init 
+
+#клонирование существующего репозитория
+git clone git@bitbucket.org:repo/repo.git
+
+#определение состояния файлов
+git status
+
+#добавление файла в индекс, также делает неотслеживаемый файл отслеживаемым
+git add README
+
+Файл .gitignore: игнорирование файлов git-ом.
+
+#просмотр изменений в неиндексированных файлах
+git diff
+
+#просмотр изменений по сравнению с предыдущим коммитом
+git diff --staged
+#то же самое
+git diff --cached
+
+#коммит изменений
+git commit 
+
+#добавить сообщение при коммите
+git commit -m "Message about commit"
+
+#закоммитить все проиндексированные файлы
+git commit -am "Message about commit"
+
+#удаление файла и физически, и из Git (удаление файла попадет в индекс)
+git rm README
+
+#удаление файла из проиндексированных 
+git rm --cached README
+
+#перемещение файлов
+git mv file_from file_to
+
+#просмотр истории коммитов
+git log
+
+#откатиться на  commit-id
+git checkout <commit-id>
+
+#дополнить предыдущий коммит
+git commit --amend
+
+#отмена индексации файла
+git restore --staged README
+
+#отмена изменений в непроиндексированном файле
+git restore file
+
+#просмотр удаленных репозиториев
+git remote
+
+#просмотр адресов для чтения и записи, привязанные к репозиторию
+git remote -v
+
+#добавить удаленный репозиторий
+git remote add <shortname> <url>
+
+#получить данные из удаленного проекта
+git fetch [remote-name]
+
+#получить данные из удаленного проекта и автоматически слить с рабочей версией
+git pull [remote-name]
+
+#отправка изменений в удаленный репозиторий
+git push <remote-name> <branch-name>
+
+#создание тэга
+git tag tagname
+
+#создание псевдонима
+git config --global alias.ci commit
+git config --global alias.unstage 'reset HEAD --'
+
+#создание ветки
+git branch new_branch
+
+git checkout -b new_branch
+
+#переключение веток
+git checkout target_branch
+
+#отображение истории коммитов, текущего положения указателей веток и истории ветвления
+git log --oneline --decorate --graph --all
+
+#более новая команда для переключения веток
+git switch target_branch
+
+#слить ветку target_branch с текущей
+git merge target_branch
+
+#В некоторых файлах могут быть конфликты (внутри обозначены места). После правки содержимого (можно выбрать любой из двух либо вообще внести новое содержимое), файл надо добавить в индекс через git add. После того, как все конфликтные файлы были проиндексированы, надо выполнить git commit для создания коммита слияния.
+
+#Работа с удаленным сервером по ssh
+#Создать пару ssh-ключей
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+#Убедиться, что запущен ssh-agent
+eval "$(ssh-agent -s)"
+
+#Добавить новый ssh-ключ в локальный агент SSH
+ssh-add -K ~/.ssh/id_rsa
+
+#Положить id_rsa.pub на сервер - можно руками
+
+Больше информации на https://git-scm.com/book/ru/v2
