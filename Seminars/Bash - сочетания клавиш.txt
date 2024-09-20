@@ -1,0 +1,6 @@
+Сочетания клавиш GNU/Linux (+что и когда делают):
+
+  TAB, Ctrl+A|B|C|D|E|F|K|L|Q|R|S|U|W|Z|, Alt+F|B|R|C|U|L|,
+  Ctrl+Alt+Del
+  Ctrl+Alt+F1|F2|F3|F4|F5|F6|, Alt+F1|F2|F3|F4|F5|F6|
+  Shift+PgUp, Shift+PgDown
