@@ -1,0 +1,69 @@
+@echo off
+
+set start_cd=%cd%
+
+if "%1"=="-?" goto help
+if "%1"=="/?" goto help
+if "%1"=="help" goto help
+if "%1"=="hlep" goto help
+if "%1"=="-h" goto help
+if "%1"=="--help" goto help
+
+if "%1"=="-r" (goto backward)
+if "%1"=="--reverse" (goto backward
+) else (goto forward)
+
+
+:forward
+cd %1
+:fon1
+set intr=%RANDOM%
+dir "%cd%\cache%intr%" >nul 2>&1
+if %errorlevel%==0 (
+	goto fon1
+) else (
+	FOR /R %DIR% %%f IN (*.txt) DO (
+	iconv -c -f CP866 -t UTF-8 %%f > cache%intr%
+	type cache%intr% > %%f
+	)
+) 
+
+)
+goto suda
+
+
+
+:backward
+cd %2
+:fon2
+set intr=%RANDOM%
+dir "%cd%\cache%intr%" >nul 2>&1
+if %errorlevel%==0 (
+	goto fon2
+) else (
+	FOR /R %DIR% %%f IN (*.txt) DO (
+	iconv -c -f UTF-8 -t CP866 %%f > cache%intr%
+	type cache%intr% > %%f
+	)
+) 
+
+)
+goto suda
+
+
+:suda
+del cache%intr%
+goto end
+
+:error
+if %ERRORLEVEL% neq "0" (echo exit with %ERRORLEVEL% cod
+) else (echo "done")
+goto end
+
+:help
+echo Specify the directory, that's it.The txt files in it will be converted from CP866 encoding to UTF-8 encoding. If extra files have been converted, then use the -r or --reverse key to convert everything in reverse order. Do not use with the same settings two or more times in a row, otherwise data security !not guaranteed!
+goto end
+
+:end
+cd %start_cd%
+exit /b
