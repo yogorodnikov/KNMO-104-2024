@@ -1,0 +1,13 @@
+@echo off
+
+if "%1"=="/?" (
+  echo "this a help"
+) else (
+  cd %1
+  FOR /R %DIR% %%f IN (*.txt) DO (
+  iconv -c -f CP866 -t UTF-8 %%f > cache
+  type cache > %%f
+  ) 
+)
+pause
+del cache
