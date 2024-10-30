@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Проверка на наличие всех необходимых аргументов
+if [ "$#" -ne 4 ]; then
+	echo "Использование: $0 <имя директории> <минимальная ширина> <минимальная высота> <имя выходного PDF файла>"
+	exit 1
+fi
+
+# Получаем аргументы
+src_dir="$1"
+min_width="$2"
+min_height="$3"
+output_pdf="$4"
+
+# Временная директория для хранения отобранных и обработанных изображений
+temp_dir=$(mktemp -d)
+
+# Определение максимальных ширины и высоты
+max_width=0
+max_height=0
+
+# 1. Проходим по всем .jpg файлам в указанной директории и фильтруем их по заданным размерам
+for img in "$src_dir"/*.jpg; do
+	# Получаем ширину и высоту изображения
+	dimensions=$(identify -format "%w %h" "$img")
+	width=$(echo "$dimensions" | cut -d' ' -f1)
+	height=$(echo "$dimensions" | cut -d' ' -f2)
+
+	# Проверяем, подходит ли изображение по размерам
+	if [ "$width" -ge "$min_width" ] && [ "$height" -ge "$min_height" ]; then
+	# Обновляем максимальные ширину и высоту, если текущие больше
+		if [ "$width" -gt "$max_width" ]; then max_width=$width; fi
+		if [ "$height" -gt "$max_height" ]; then max_height=$height; fi
+
+		# Копируем изображение в временную директорию
+		cp "$img" "$temp_dir"
+	fi
+done
+
+# 2. Масштабируем все изображения в temp_dir до максимальных размеров
+for img in "$temp_dir"/*.jpg; do
+	convert "$img" -resize "${max_width}x${max_height}!" "$img"
+done
+
+# 3. Объединяем отмасштабированные изображения в один PDF
+convert "$temp_dir"/*.jpg "$output_pdf"
+
+# 4. Удаляем временную директорию
+rm -rf "$temp_dir"
+
+echo "Файл PDF создан: $output_pdf"
