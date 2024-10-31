@@ -1,0 +1,1 @@
+converter.bat 3 2 "img" collage.jpg
