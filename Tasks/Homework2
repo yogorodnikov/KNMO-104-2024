@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# Функция для отображения справки
+function show_help() {
+    echo "Использование: $0 <директория> <ширина> <высота> <имя_файла.pdf>"
+    echo
+    echo "Параметры:"
+    echo "  <директория>          Путь к директории с изображениями"
+    echo "  <ширина>             Пороговая ширина"
+    echo "  <высота>             Пороговая высота"
+    echo "  <имя_файла.pdf>     Имя выходного PDF файла"
+    echo "  -h, --help           Показать справку"
+    exit 1
+}
+
+# Проверка параметров
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    show_help
+fi
+
+if [[ $# -ne 4 ]]; then
+    echo "Ошибка: неверное количество параметров." >&2
+    show_help
+fi
+
+input_dir="$1"
+min_width="$2"
+min_height="$3"
+output_pdf="$4"
+
+# Проверка существования директории
+if [[ ! -d "$input_dir" ]]; then
+    echo "Ошибка: Директория не существует." >&2
+    exit 1
+fi
+
+# Проверка, что параметры - целые числа
+if ! [[ "$min_width" =~ ^[0-9]+$ ]] || ! [[ "$min_height" =~ ^[0-9]+$ ]]; then
+    echo "Ошибка: Ширина и высота должны быть целыми числами." >&2
+    exit 1
+fi
+
+# Инициализация переменных
+declare -a valid_images
+max_width=0
+max_height=0
+
+# Проход по изображениям в директории
+shopt -s nullglob
+for img in "$input_dir"/*.jpg; do
+    if [[ -f "$img" ]] && [[ "$(file --mime-type -b "$img")" == image/* ]]; then
+        dimensions=($(identify -format "%w %h" "$img"))
+        width=${dimensions[0]}
+        height=${dimensions[1]}
+
+        # Проверка на соответствие порогам
+        if [[ $width -ge $min_width && $height -ge $min_height ]]; then
+            valid_images+=("$img")
+            # Определяем максимальные размеры
+            if [[ $width -gt $max_width ]]; then
+                max_width=$width
+            fi
+            if [[ $height -gt $max_height ]]; then
+                max_height=$height
+            fi
+        fi
+    fi
+done
+
+# Проверка наличия подходящих изображений
+if [[ ${#valid_images[@]} -eq 0 ]]; then
+    echo "Ошибка: Не найдено изображений, соответствующих заданным критериям." >&2
+    exit 1
+fi
+
+# Конвертация изображений в нужный размер
+for img in "${valid_images[@]}"; do
+    convert "$img" -resize "${max_width}x${max_height}!" "${img%.jpg}_resized.jpg"
+done
+
+# Создание PDF из обработанных изображений
+convert "${input_dir}/*_resized.jpg" "$output_pdf"
+
+# Удаление временных файлов
+rm "${input_dir}/*_resized.jpg"
+
+echo "PDF файл успешно создан: $output_pdf"
