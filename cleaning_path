@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Проверка аргументов
+if [[ “$1” == “--help” || "$1" == "-h" ]]; then
+    echo "Использование: $0 [путь]"
+    echo "Проверяет, что в каждом каталоге в PATH или в указанном пути есть исполняемые файлы."
+    echo "Выводит очищенный PATH, исключая каталоги без исполняемых файлов и дублирующиеся пути."
+    echo "Также оставляет только самые новые версии исполняемых файлов с одинаковыми именами."
+    echo "-h, --help  Вывести эту справку"
+    exit 1
+fi
+
+# Используем указанный путь или переменную PATH
+paths_to_check="${1:-$PATH}"
+
+# Удаляем дубликаты путей и разбиваем на массив по ':'
+IFS=':' read -r -a paths <<< "$(echo "$paths_to_check" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':')"
+
+# Словарь для отслеживания самых новых версий исполняемых файлов
+declare -A latest_executables
+
+# Очищенный PATH
+cleaned_path=""
+
+# Перебор каждого каталога
+for dir in "${paths[@]}"; do
+    # Проверка, что директория существует и содержит исполняемые файлы
+    if [[ -d "$dir" ]]; then
+        executables_found=false
+        # Перебор исполняемых файлов в директории
+        for file in "$dir"/*; do
+            if [[ -f "$file" && -x "$file" ]]; then
+                executables_found=true
+                filename=$(basename "$file")
+                # Проверка на самый новый исполняемый файл с одинаковым именем
+                if [[ ! ${latest_executables[$filename]} || "$file" -nt "${latest_executables[$filename]}" ]]; then
+                    latest_executables[$filename]="$file"
+                fi
+            fi
+        done
+        # Добавляем каталог в очищенный PATH, если найден хотя бы один исполняемый файл
+        if [[ $executables_found == true ]]; then
+            cleaned_path+="${dir}:"
+        fi
+    fi
+done
+
+# Выводим очищенный PATH без последнего ':'
+echo "${cleaned_path%:}"
+
+# Выводим самые новые версии исполняемых файлов
+echo "Самые новые версии исполняемых файлов:"
+for file in "${latest_executables[@]}"; do
+    echo "$file"
+done
