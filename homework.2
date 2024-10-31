@@ -1,0 +1,42 @@
+show_help() {
+    echo "Использование: $0 N M исходная_директория результат.png"
+}
+
+
+if [[ $#  - ne 4 ]]; then show_help; exit 1; fi
+
+N = $1; M = $2; SOURCE_DIR = $3; OUTPUT_FILE = $4
+
+
+if ![[ "$N" = ~^ [0 - 9] + $ && "$M" = ~^ [0 - 9] + $ ]]; then
+echo "Ошибка: N и M должны быть положительными числами."; exit 1;
+fi
+
+
+images = ($(find "$SOURCE_DIR" - type f - iregex '.*\.(jpg|jpeg|png|gif)$' | sort))
+if ((${ #images[@] } < N * M)); then
+    echo "Ошибка: недостаточно изображений."; exit 1;
+fi
+
+
+selected_images = ("${images[@]:0:$((N * M))}")
+min_size = (99999 99999)
+for img in "${selected_images[@]}"; do
+read width height < < (identify - format "%w %h" "$img")
+    ((width < min_size[0])) && min_size[0] = $width
+    ((height < min_size[1])) && min_size[1] = $height
+    done
+
+    
+    resized_images = ()
+    for img in "${selected_images[@]}"; do
+        resized_img = $(mktemp --suffix = .png)
+        convert "$img" - resize "${min_size[0]}x${min_size[1]}!" "$resized_img"
+        resized_images += ("$resized_img")
+        done
+
+        # Создание итогового файла
+        montage "${resized_images[@]}" - tile "${N}x${M}" - geometry + 0 + 0 "$OUTPUT_FILE"
+        rm "${resized_images[@]}"
+        echo "Успешно объединено в $OUTPUT_FILE."
+        
