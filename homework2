@@ -1,0 +1,70 @@
+#!/bin/bash
+
+if [[ "$1" = "-h" || "$1" = "--help" ]]; then
+    echo "The program is changing dimensions of .jpg images"
+    echo "Usage: [input_directory] [width] [height] [output_file]"
+    exit 0
+elif [[ "$#" != 4 ]]; then
+    echo "Error"
+    echo "Usage: [input_directory] [width] [height] [output_file]"
+    exit 1
+elif [ ! -e "$1" ]; then
+    echo Directory "$1" is not exist
+    exit 1
+elif [ -f "$1/$4.pdf" ]; then
+    echo File "$4" is exist. Rename please
+    exit 1
+elif [ "$4" = '' ]; then
+    echo Invalid file name
+    exit 1
+fi
+
+INPUT_DIR=$1
+WIDTH=$2
+HEIGHT=$3
+OUTPUT_FILE=$4
+
+allfiles=$(find "$INPUT_DIR" -name "*.jpg")
+
+MAX_SIZE=0
+MAX_WIDTH=0
+MAX_HEIGHT=0
+
+for file in $allfiles; do
+    file_type=$(file -b --mime-type "$file")
+    if [[ $file_type == "image/jpeg" ]]; then
+        image_width=$(identify -format "%w" "$file")
+        image_height=$(identify -format "%h" "$file")
+        image_size=$(( image_width*image_height ))
+        if [ "$image_width" -ge "$WIDTH" ] && [ "$image_height" -ge "$HEIGHT" ] && [ "$image_size" -gt "$MAX_SIZE" ]; then
+            MAX_SIZE=$image_size
+            MAX_WIDTH=$image_width
+            MAX_HEIGHT=$image_height
+        fi
+    fi
+done
+
+pdf_files=()
+
+for file in $allfiles; do
+    file_type=$(file -b --mime-type "$file")
+    if [[ $file_type == "image/jpeg" ]]; then
+        image_width=$(identify -format "%w" "$file")
+        image_height=$(identify -format "%h" "$file")
+        if [ "$image_width" -ge "$WIDTH" ] && [ "$image_height" -ge "$HEIGHT" ]; then
+            convert "$file" -resize "${MAX_WIDTH}"x"${MAX_HEIGHT}" "$INPUT_DIR/pdf$(basename "$file")"
+            pdf_files+=( "$INPUT_DIR/pdf$(basename "$file")" )
+        fi
+    fi
+done
+
+if [[ ${#pdf_files[@]} == 0 ]]; then
+    echo No matching files found
+    exit 0
+fi
+convert "${pdf_files[@]}" "$INPUT_DIR/$OUTPUT_FILE.pdf"
+
+for file in ${pdf_files[@]}; do
+    rm "$file"
+done
+echo Successful completion
