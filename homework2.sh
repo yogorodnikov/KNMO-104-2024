@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Проверка параметров
-
 if [[ $1 == '-h' || $1 == '--help' ]]; then
 
   echo "Использование: $0 <директория> <ширина> <высота> <имя_файла.pdf>"
@@ -10,7 +8,6 @@ if [[ $1 == '-h' || $1 == '--help' ]]; then
 
 fi
 
-# Параметры
 
 DIR=$1
 
@@ -20,7 +17,7 @@ MIN_HEIGHT=$3
 
 PDF_NAME=$4
 
-# Проверка существования директории
+
 
 if [ ! -d "$DIR" ]; then
 
@@ -30,7 +27,7 @@ if [ ! -d "$DIR" ]; then
 
 fi
 
-# Получаем максимальные размеры изображений
+
 
 MAX_WIDTH=0
 
@@ -38,8 +35,7 @@ MAX_HEIGHT=0
 
 for IMAGE in "$DIR"/*; do
 
-  # Проверка, является ли файл изображением
-
+  
   if file "$IMAGE" | grep -qE 'image|bitmap'; then
 
     WIDTH=$(identify -format "%w" "$IMAGE")
@@ -68,7 +64,7 @@ for IMAGE in "$DIR"/*; do
 
 done
 
-# Изменяем размер изображений и создаем список файлов для PDF
+
 
 TEMP_FILES=()
 
@@ -84,7 +80,7 @@ for IMAGE in "$DIR"/*; do
 
       OUTPUT_IMAGE="${IMAGE%.*}_resized.jpg"
 
-      # Изменение размера изображения
+      
 
       convert "$IMAGE" -resize "${MAX_WIDTH}x${MAX_HEIGHT}!" "$OUTPUT_IMAGE"
 
@@ -96,11 +92,11 @@ for IMAGE in "$DIR"/*; do
 
 done
 
-# Создаем PDF
+
 
 if [ ${#TEMP_FILES[@]} -gt 0 ]; then
 
-  # Объединение изображений в один PDF
+  
 
   convert "${TEMP_FILES[@]}" "$PDF_NAME"
 
@@ -112,7 +108,7 @@ else
 
 fi
 
-# Удаляем временные файлы
+
 
 for TEMP_FILE in "${TEMP_FILES[@]}"; do
 
