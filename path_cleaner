@@ -1,0 +1,44 @@
+#!/bin/bash
+
+if [[ “$1” == “--help” || "$1" == "-h" ]]; then
+    echo "это справка"
+    exit 1
+fi
+
+paths_check="${1:-$PATH}"
+
+# Удаляем дубликаты путей и разбиваем на массив по ':'
+IFS=':' read -r -a paths <<< "$(echo "$paths_check" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':')"
+
+# для отслеживания новейших версий
+declare -A latest_exe
+
+cleaned_path=""
+
+for dir in "${paths[@]}"; do
+    if [[ -d "$dir" ]]; then
+        bool_flag=false
+        for file in "$dir"/*; do
+            if [[ -f "$file" && -x "$file" ]]; then
+                bool_flag=true
+                filename=$(basename "$file")
+                # Проверка на новейший файл с совпадающим именем
+                if [[ ! ${latest_exe[$filename]} || "$file" -nt "${latest_exe[$filename]}" ]]; then
+                    latest_exe[$filename]="$file"
+                fi
+            fi
+        done
+        if [[ $bool_fLag == true ]]; then
+            cleaned_path+="${dir}:"
+        fi
+    fi
+done
+
+# Выводим очищенный PATH без последнего ':'
+echo "${cleaned_path%:}"
+
+# Выводим самые новые версии исполняемых файлов
+echo "Новейшие версии исполняемых файлов:"
+for file in "${latest_exe[@]}"; do
+    echo "$file"
+done
