@@ -1,0 +1,37 @@
+#!/bin/bash
+
+if [[ "$#" -gt 1 ]]; then
+    echo "Use: $0 [-h|--help] [directory]"
+    echo "Check all files from PATH or choice directory"
+    exit 1
+fi
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Use: $0 [-h|--help] [directory]"
+    echo "Check all files from PATH or choice directory"
+    exit 0
+elif [[ -n "$1" ]]; then
+    IFS=':' read -ra dirs <<< "$1"
+else
+    IFS=':' read -ra dirs <<< "$PATH"
+fi
+
+
+declare -A unique_dirs
+
+find_executables() {
+    local dir="$1"
+    if [[ -d "$dir" ]]; then
+        mapfile -t executables < <(find "$dir" -maxdepth 1 -type f -executable)
+        if [[ ${#executables[@]} -gt 0 ]]; then
+            unique_dirs["$dir"]=1
+        fi
+    fi
+}
+
+
+for dir in "${dirs[@]}"; do
+    find_executables "$dir"
+done
+cleaned_path=$(IFS=:; echo "${!unique_dirs[@]}")
+echo "$cleaned_path"
