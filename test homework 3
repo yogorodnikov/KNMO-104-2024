@@ -1,0 +1,35 @@
+#!/bin/bash
+
+
+check_directory() {
+    local dir="$1"
+    [[ -d "$dir" && -n "$(find "$dir" -maxdepth 1 -type f -executable -print -quit)" ]]
+}
+
+
+if [[ $# -eq 0 ]]; then
+    paths="$PATH"
+elif [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Использование: $0 [DIR]"
+    echo "Если DIR не указан, будет проверен PATH."
+    exit 0
+else
+    paths="$1"
+fi
+
+
+IFS=':' read -r -a path_array <<< "$paths"
+cleaned_paths=()
+
+for dir in "${path_array[@]}"; do
+    if check_directory "$dir"; then
+        cleaned_paths+=("$dir")
+    fi
+done
+
+
+if [[ ${#cleaned_paths[@]} -gt 0 ]]; then
+    echo "${cleaned_paths[*]}"
+else
+    echo "Нет доступных исполняемых файлов."
+fi
