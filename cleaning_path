@@ -16,7 +16,7 @@ paths_to_check="${1:-$PATH}"
 # Удаляем дубликаты путей и разбиваем на массив по ':'
 IFS=':' read -r -a paths <<< "$(echo "$paths_to_check" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':')"
 
-# Словарь для отслеживания самых новых версий исполняемых файлов
+# Словарь для отслеживания новых версий исполняемых файлов
 declare -A latest_executables
 
 # Очищенный PATH
@@ -32,7 +32,7 @@ for dir in "${paths[@]}"; do
             if [[ -f "$file" && -x "$file" ]]; then
                 executables_found=true
                 filename=$(basename "$file")
-                # Проверка на самый новый исполняемый файл с одинаковым именем
+                # Проверка на исполняемый файл с одинаковым именем
                 if [[ ! ${latest_executables[$filename]} || "$file" -nt "${latest_executables[$filename]}" ]]; then
                     latest_executables[$filename]="$file"
                 fi
