@@ -1,0 +1,49 @@
+#!/bin/bash
+
+if [[ “$1” == “--help” || "$1" == "-h" ]]; then
+    echo "Использование: $0 (source)"
+    echo "Находит медиану по времени обработки запроса для указанного в параметрах source (по умолчанию по всем запросам)."
+    echo "В новый файл с логами включает только те запросы, время обработки которых превышает медианное"
+    echo "-h, --help  Вывести эту справку"
+    exit 1
+fi
+
+# Название входного файла
+input_file="Task4_logs.log"
+
+# Название выходного файла
+output_file="output.log"
+
+# Источник (source), по которому фильтруем
+source_filter=${1:-""}
+
+# Временный файл для сортировки
+temp_file=$(mktemp)
+
+# Шаг 1: Фильтрация по source (если указано)
+if [[ -n "$source_filter" ]]; then
+    awk -F'|' -v source="$source_filter" '$4 ~ source {print $0}' "$input_file" > "$temp_file"
+else
+    cp "$input_file" "$temp_file"
+fi
+
+# Шаг 2: Извлечение времени выполнения (exec_time)
+exec_times=($(awk -F'|' '{print $5}' "$temp_file" | sort -n))
+
+# Шаг 3: Нахождение медианы
+count=${#exec_times[@]}
+if (( count % 2 == 0 )); then
+    median=$(echo "(${exec_times[count/2-1]} + ${exec_times[count/2]}) / 2" | bc -l)
+else
+    median=${exec_times[count/2]}
+fi
+
+# Шаг 4: Фильтрация по медиане и создание нового файла
+awk -F'|' -v median="$median" '{if ($5 > median) print $0}' "$temp_file" > "$output_file"
+
+# Шаг 5: Очистка временного файла
+rm "$temp_file"
+
+# Вывод результата
+echo "Лог-файл с запросами, время выполнения которых превышает медианное, сохранён в $output_file."
+
