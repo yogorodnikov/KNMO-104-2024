@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Arguments:"
+    echo "  source            Optional source to filter the logs"
+    echo "  input_log_file    The input log file to read from"
+    echo "  output_log_file   The output log file to write filtered logs to"
+    echo
+    echo "Options:"
+    echo "  -h, --help        Show this help message and exit"
+    echo
+    echo "Usage: input_log_file output_log_file <source>"
+    exit 0
+fi
+
+if [ "$#" -lt 2 ]; then
+    echo "Error: Not enough arguments provided."
+    exit 1
+fi
+
+log_file="$1"
+output_file="$2"
+source_filter="$3"
+
+if [ -z "$source_filter" ]; then
+    exec_times=($(awk -F'|' '{print $5}' "$log_file" | tr -d ' ' | sort -n))
+else
+    exec_times=($(awk -F'|' -v src="$source_filter" '$4 ~ src {print $5}' "$log_file" | tr -d ' ' | sort -n))
+fi
+
+count=${#exec_times[@]}
+if (( count == 0 )); then
+    echo "No matching records found."
+    exit 1
+fi
+
+if (( count % 2 == 0 )); then
+    median_time=$(echo "scale=2; (${exec_times[count/2-1]} + ${exec_times[count/2]}) / 2" | bc)
+else
+    median_time=${exec_times[count/2]}
+fi
+
+temp_file=$(mktemp)
+
+awk -F'|' -v median="$median_time" '{
+    exec_time = $5;
+    if (exec_time > median) {
+        level = sprintf("%-6s", $1);
+        date = sprintf("%-21s", $2);
+        ip = sprintf("%-15s", $3);
+        source = $4;
+        exec_time = $5;
+        printf "%s | %s | %s | %s | %s\n", level, date, ip, source, exec_time > "'$temp_file'"
+    }
+}' "$log_file"
+
+sort -t '|' -k5,5n "$temp_file" > "$output_file"
+
+rm "$temp_file"
+
+echo "Filtered log written to $output_file"
+echo "Median exec_time: $median_time"
