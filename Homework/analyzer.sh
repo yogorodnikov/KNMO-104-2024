@@ -27,7 +27,7 @@ fi
 
 out_file=$2
 ref_time=$3
-if ! [[ "$ref_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] || ! date -d "$ref_time" &>dev>null; then
+if ! [[ "$ref_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] || ! date -d "$ref_time" > /dev/null 2>&1; then
   echo "Ошибка: Некорректный формат времени '$ref_time'. Используйте 'YYYY-MM-DD HH:MM:SS'."
   exit 1
 fi
