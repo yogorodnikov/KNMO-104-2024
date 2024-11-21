@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if["$#" - ne 1]; then
+echo "usage: $0 <path file>"
+echo "script analiz the log file extracts the lines where ecex time"
+exit 1
+fi
+
+file_1 = "$1"
+file_2 = "temp_exec_times.log"
+otvet = "output.log"
+
+while IFS = '|' read - r level date ip source exec_time; do
+echo "$exec_time" >> "$file_2" done < "$file_1"
+
+sort - n "$file_2" - o "$file_2"
+
+count = $(wc - l < "$file_2")
+
+if[$((count % 2)) - eq 0]; then
+	MIDDLE = $((count / 2))
+	MEDIAN1 = $(sed - n "${MIDDLE}p" "$file_2")
+	MEDIAN2 = $(sed - n "$((MIDDLE + 1))p" "$file_2")
+
+	MEDIAN = $(((MEDIAN1 + MEDIAN2) / 2))
+else
+	MIDDLE = $((count/ 2 + 1))
+	MEDIAN = $(sed - n "${MIDDLE}p" "$file_2")
+	fi
+
+true> "$OUTPUT_FILE"  
+
+while IFS = '|' read - r level date ip source exec_time; do
+	if ((exec_time > MEDIAN)); then
+		echo "$level|$date|$ip|$source|$exec_time" >> "$otvet"
+	fi
+done < "$file_1"
+
+sort - t '|' - k5, 5n - k4, 4 "$otvet" - o "$otvet"
+
+rm "$file_2"
