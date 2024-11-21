@@ -28,7 +28,7 @@ else
 	MEDIAN = $(sed - n "${MIDDLE}p" "$file_2")
 	fi
 
-true> "$OUTPUT_FILE"  
+true> "$otvet"  
 
 while IFS = '|' read - r level date ip source exec_time; do
 	if ((exec_time > MEDIAN)); then
