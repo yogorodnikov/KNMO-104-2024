@@ -1,0 +1,36 @@
+#!/bin/bash
+
+if 
+[[ "$1" == "-h" || "$1" == "--help" ]];
+then
+echo "This script processes log files based on specified time parameters."
+exit 0
+elif [ "$#" -ne 4 ];
+then
+echo -e "Please provide 4 parameters\n(Log file name) (Date) (Time) (Time period)"
+exit 1
+elif [ ! -f $1 ];
+then
+echo "The specified log file was not found."
+exit 1
+fi
+
+file_name=$1
+date=$2
+time=$3
+time_period=$4
+end_time_seconds=$(date -d "$date $time" +%s)
+start_time_seconds=$(($end_time_seconds - $time_period * 60))
+log_date=$(date -d "$date $time" +"%Y-%m-%d")
+
+awk -v start="$start_time_seconds" -v end="$end_time_seconds" -F '|' '
+{
+log_time = $2
+log_time_seconds = mktime(gensub(/[-: ]/, " ", "g", log_time))
+if (log_time_seconds >= start && log_time_seconds <= end) {
+print $0
+}
+}' "$file_name" |
+sort -t '|' -k2,2 -k4,4 > new_logs.txt
+
+echo "The logs within the specified time period have been saved to new_logs.txt"
