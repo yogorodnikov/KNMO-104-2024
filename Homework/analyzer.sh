@@ -41,8 +41,7 @@ fi
 ref_epoch=$(date -d "$ref_time" +%s)
 min_epoch=$((ref_epoch - minutes * 60))
  
-awk -v ref="$ref_epoch" -v min="$min_epoch" '
-BEGIN { FS = "\\|" }
+awk -F'|' -v ref="$ref_epoch" -v min="$min_epoch" '
 {
   split($2, datetime, " ")
   split(datetime[1], date_parts, "-")
