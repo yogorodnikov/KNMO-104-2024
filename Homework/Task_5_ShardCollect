@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Default directory is current directory
+DIRECTORY="."
+
+# Function to display help
+show_help() {
+    echo "Usage: ./ShardCollect.sh [-d DIRECTORY | --directory DIRECTORY]"
+    echo "Search for first-level subdirectories in DIRECTORY with no open files."
+    echo "If no DIRECTORY is specified, the current directory is used."
+    echo "Options:"
+    echo "  -h, --help          Show this help message."
+    echo "  -d, --directory     Specify the directory to search in."
+}
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -d|--directory)
+            DIRECTORY="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: \$1"
+            exit 1
+            ;;
+    esac
+done
+
+# Get all first-level subdirectories
+subdirs=$(find "$DIRECTORY" -maxdepth 1 -type d | tail -n +2)
+
+# Run lsof once to get a list of open files and extract the file paths
+open_files=$(lsof +D "$DIRECTORY" | grep -o '[^ ]*')
+
+# Initialize a flag to check if any directory is found
+found=0
+
+# Check each subdirectory
+for dir in $subdirs; do
+    # Check if the directory is not in the list of open files
+    if ! echo "$open_files" | grep -q "^$dir$"; then
+        echo "$dir"
+        found=1
+    fi
+done
+
+# If no directories were found, exit with a non-zero status
+if [[ $found -eq 0 ]]; then
+    exit 1
+fi
+
+exit 0
