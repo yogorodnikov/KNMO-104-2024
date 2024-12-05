@@ -1,0 +1,52 @@
+#!/bin/bash
+
+show_help() {
+    echo "Использование: $0 [-h|--help] [-d|--directory DIRECTORY]"
+    echo
+    echo "Опции:"
+    echo "  -h, --help        Показать эту справку"
+    echo "  -d, --directory   Указать директорию для поиска подкаталогов"
+}
+
+
+directory="."
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -d|--directory)
+            shift
+            directory="$1"
+            ;;
+        *)
+            echo "Неизвестная опция: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [[ ! -d "$directory" ]]; then
+    echo "Директория не существует: $directory"
+    exit 1
+fi
+
+found=0
+for subdir in "$directory"/*/; do
+    if [[ -d "$subdir" ]]; then
+        if ! lsof +D "$subdir" &>/dev/null; then
+            echo "$subdir" 
+            found=1
+        fi
+    fi
+done
+
+if [[ $found -eq 0 ]]; then
+    exit 1
+fi
+
+exit 0
