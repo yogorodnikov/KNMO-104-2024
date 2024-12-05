@@ -1,0 +1,50 @@
+#!/bin/bash
+
+show_help() {
+    echo "The program finds all sub-directories of the first level in"
+    echo "which no file is open in the specified directory."
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -h, --help          Show help"
+    echo "  -d, --directory     Choose directory for search (default current)"
+}
+
+
+directory="."
+case $1 in
+	"-h"|"--help")
+		show_help
+		exit 0
+		;;
+	"-d"|"--directory")
+		if [ ! -d "$2" ]; then
+			echo "Error for find this directory"
+			exit 1
+		fi
+		directory="$2"
+		;;
+	"")
+		directory="."
+		;;
+	*)
+		echo "try $0 -h or $0 --help to see usage"
+		exit 1
+		;;
+esac
+
+counter=0
+for dir in "$directory"/*; do
+	if ! lsof +D "$dir" &>/dev/null; then
+		if [ -d "$dir" ]; then
+			echo "$dir"
+			counter=$((counter + 1))
+		fi
+	fi
+done
+
+if [ "$counter" -lt 1 ]; then
+	exit 1
+fi
+exit 0
+
