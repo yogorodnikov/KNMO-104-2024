@@ -1,0 +1,58 @@
+#!/bin/bash
+
+if [[ “$1” == “--help” || "$1" == "-h" ]]; then
+    echo "----THIS IS HELP MESSAGE----"
+    echo "Usage: $0 directory"
+    echo "This program finds all first-level subdirectories that do not have any open files"
+    echo "By default, the current directory is used"
+    echo "Outputs the found directories one per line"
+    echo "-h, --help  Display this help"
+    exit 1
+fi
+
+# Set the current dir as default
+dir="." 
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -d|--directory)
+            dir="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Check if the directory exists
+if [[ ! -d "$dir" ]]; then
+    echo "Error: directory '$dir' doesn`t exist or ins`t accessible" >&2
+    exit 1
+fi
+
+# Variable to store empty dirs
+empty_dirs=()
+
+# Iterate over al first-level subdirectories
+for subdir in "$dir"/*/; do
+    # Ensure that this is a subdirectory
+    if [[ -d "$subdir" ]]; then
+        # Check if there are any open files in the subdirectory
+        if ! lsof +D "$subdir" &>/dev/null; then
+            empty_dirs+=("$subdir")
+        fi
+    fi
+done
+
+# If empty directories are found, output them
+if [[ ${#empty_dirs[@]} -gt 0 ]]; then
+    for empty_dir in "${empty_dirs[@]}"; do
+        echo "$empty_dir"
+    done
+    exit 0
+else
+    # If nothing is found, output nothing and return an error code
+    echo "No empty directories"
+    exit 1
+fi
