@@ -8,15 +8,16 @@ function show_help() {
     exit 0
 }
 
-DIRECTORY="."
+DIRECTORY=""
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         (-h|--help) show_help ;;
         (-d|--directory) DIRECTORY="$2"; shift ;;
-        (*) echo "Unknown parameter passed: $1"; exit 1 ;;
+        (*) echo "Неизвестный параметр: $1"; exit 1 ;;
     esac
     shift
 done
+
 
 if [ -z "${DIRECTORY}" ]; then
     DIRECTORY=$(pwd)
