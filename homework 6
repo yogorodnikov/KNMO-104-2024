@@ -1,0 +1,61 @@
+#!/bin/bash
+output="output.txt"
+case "$1" in
+    -h|--help)
+        echo "This is SPRAVKA!!!"
+        echo "$0 is a script for bringing configuration files into a form that is digestible for programs."
+        exit 0
+        ;;
+    -o)
+        file="config.conf" # для упрощения отладки
+        ;;
+    *)
+        file=$1
+        ;;
+esac
+
+# Проверка наличия файла
+if [[ ! -f "$file" ]]; then
+    echo "File not found!"
+    exit 1
+fi
+exec > "output"
+# Построчное чтение файла
+while IFS= read -r line; do #цикл чтения файла, IFS отключает раздел по пробелам, -r отключает экранирование символов(\n воспринимает в слове), line-переменная для сохр.строки
+    if [[ -z "$line" ]]; then #проверка на пустую строку, пропуск ее
+        continue
+    fi
+
+    IFS='=' read -r key value <<< "$line" #разделение строки на ключ и значение, строка дел на 2 части по симв =. Лев часть key, прав value. Содерж передается из строки line
+
+    if ! [[ $line =~ ^[a-zA-Z]+=[0-9]+(.[0-9]+)?(s|min|h|d|mm|cm|dm|m|km|mg|g|kg|t)?$ ]]; then #проверка формата строки,  
+        continue
+    fi
+
+    digits="${value%%[!0-9.]*}"  # Убираем все символы после цифр
+    letters="${value#$digits}"  # Убираем цифры из начала строки
+
+    case $letters in
+        s) up_to=1 ;;
+        min) up_to=60 ;;
+        h) up_to=3600 ;;
+        d) up_to=86400 ;;
+        mm) up_to=0.001 ;;
+        cm) up_to=0.01 ;;
+        dm) up_to=0.1 ;;
+        m) up_to=1 ;;
+        km) up_to=1000 ;;
+        mg) up_to=0.000001 ;;
+        g) up_to=0.001 ;;
+        kg) up_to=1 ;;
+        t) up_to=1000 ;;
+        "") up_to=1 ;;
+        *) echo $line; continue ;;
+    esac
+
+    digits=$(echo "$digits * $up_to" | bc -l)
+    digits=$(echo "$digits" | awk '{printf ($1 == int($1)) ? "%d\n" : "%.6f\n", $1}')
+    
+    echo "$key=$digits"
+done < "$file"
+exec > /dev/tty
