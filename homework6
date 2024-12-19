@@ -80,4 +80,4 @@ while IFS='=' read -r key value; do
     fi
     echo "$key=$result" >> "$new_filename"
 done < "$filename"
-
+cat "$new_filename"
