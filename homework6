@@ -1,0 +1,83 @@
+#!/bin/bash
+function show_help() {
+    echo "Использование: normconf.sh [файл]"
+    echo
+    echo "Этот скрипт нормализует значения времени, расстояния и веса в конфигурационном файле."
+    echo
+    echo "Допустимые единицы:"
+    echo "  Время: s - секунды, min - минуты, h - часы, d - дни"
+    echo "  Расстояние: m - метры, cm - сантиметры, dm - дециметры, km - километры"
+    echo "  Масса: kg - килограммы, g - граммы, mg - миллиграммы, t - тонны"
+    echo
+    echo "Пример: key=10min или distance=5km"
+    exit 0
+}
+filename="$1"
+if [ -z "$filename" ]; then
+    echo "Ошибка: не указан конфигурационный файл."
+    echo "Используйте $0 --help для получения справки."
+    exit 1
+fi
+new_filename="p.txt"
+process_time() {
+    if [[ $1 =~ ^([0-9]+)([a-zA-Z]+)$ ]]; then
+        number="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+        case $unit in
+            s) result="$number" ;;  
+            min) result=$(echo "$number * 60" | bc) ;;  
+            h) result=$(echo "$number * 3600" | bc) ;;
+            d) result=$(echo "$number * 86400" | bc) ;;  
+            *) result="$1" ;;  
+        esac
+    else
+        result="$1"  
+    fi
+}
+process_distance() {
+    if [[ $1 =~ ^([0-9]+)([a-zA-Z]+)$ ]]; then
+        number="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+        case $unit in
+            m) result="$number" ;;  
+            cm) result=$(echo "$number / 100" | bc -l) ;;  
+            dm) result=$(echo "$number / 10" | bc -l) ;;   
+            km) result=$(echo "$number * 1000" | bc) ;;  
+            *) result="$1" ;; 
+        esac
+    else
+        result="$1"  
+    fi
+}
+process_weight() {
+    if [[ $1 =~ ^([0-9]+)([a-zA-Z]+)$ ]]; then
+        number="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+        case $unit in
+            kg) result="$number" ;;  
+            g) result=$(echo "$number / 1000" | bc -l) ;; 
+            mg) result=$(echo "$number / 1000000" | bc -l) ;;  
+            t) result=$(echo "$number * 1000" | bc) ;; 
+            *) result="$1" ;;  
+        esac
+        result=$(echo "$result" | awk '{printf "%.3f\n", $1}')  
+    else
+        result="$1"  
+    fi
+}
+> "$new_filename"
+while IFS='=' read -r key value; do
+    key=$(echo "$key" | xargs)  
+    value=$(echo "$value" | xargs) 
+    if [[ $key == time* ]]; then
+        process_time "$value"
+    elif [[ $key == distance* ]]; then
+        process_distance "$value"
+    elif [[ $key == weight* ]]; then
+        process_weight "$value"
+    else
+        result="$value"  
+    fi
+    echo "$key=$result" >> "$new_filename"
+done < "$filename"
+
