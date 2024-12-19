@@ -1,0 +1,4 @@
+time=4s
+distance=8m
+longtime=15h
+weight=42g

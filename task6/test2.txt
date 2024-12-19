@@ -1,0 +1,3 @@
+time=4h 2s
+weight=4t 2kg
+vacation=30d - 2min + 30s
