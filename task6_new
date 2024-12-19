@@ -1,0 +1,184 @@
+#!/bin/bash
+
+case "$1" in
+    -h|--help)
+        echo "----THIS IS THE HELP MESSAGE----"
+        echo "$0 is a script for bringing configuration
+files into a form that is digestible for programs
+usage:
+        >> $0 your/dir   // to process your config file"
+        ;;
+    *)
+        file=$1
+        ;;
+
+
+esac
+
+convert_values() {
+    value="$1"
+    
+    
+    # извлечение цифр
+    digits="${value%%[!0-9.]*}"
+    digits=$((digits))
+
+    # извлечение букв
+    letters="${value#$digits}"
+
+    case $letters in
+        s)
+            coeff=1
+            ;;
+        min)
+            coeff=60
+            ;;
+        h)
+            coeff=3600
+            ;;
+        d)
+            coeff=86400
+            ;;
+        mm)
+            coeff=0.001
+            ;;
+        cm)
+            coeff=0.01
+            ;;
+        dm)
+            coeff=0.1
+            ;;
+        m)
+            coeff=1
+            ;;
+        km)
+            coeff=1000
+            ;;
+        mg)
+            coeff=0.000001
+            ;;
+        g)
+            coeff=0.001
+            ;;
+        kg)
+            coeff=1
+            ;;
+        t)
+            coeff=1000
+            ;;
+        "")
+            coeff=1
+            ;;
+        *)
+            echo "error"
+            exit 1
+            ;;
+    esac
+    digits=$(( $digits * $coeff ))
+    echo "$digits"
+}
+    
+export LC_ALL=C
+
+while IFS= read -r line; do
+    IFS='=' read -r key value <<< "$line"
+    operation=""
+    flag=0
+    for_reg=$(echo "$line" | sed -E 's/[[:space:]]+/ /g; s/[()]//g')
+    if [[ -z "$for_reg" ]]; then
+        continue
+    fi
+
+    # время
+    if [[ "$line" =~ ^([0-9]+)([[:space:]]*)(s|min|h|d)$ ]]; then
+        if [[ "$line" =~ [0-9]+[[:space:]]*(mm|sm|dm|m|km|mg|g|kg|t) ]]; then
+            echo "incorrect input data"
+            continue
+        fi
+    fi
+
+    # длина
+    if [[ "$line" =~ ^([0-9]+)([[:space:]]*)(mm|sm|dm|m|km)$ ]]; then
+        if [[ "$line" =~ [0-9]+[[:space:]]*(s|min|h|d|mg|g|kg|t) ]]; then
+            echo "incorrect input data"
+            continue
+        fi
+    fi
+
+    # масса
+    if [[ "$line" =~ ^([0-9]+)([[:space:]]*)(mg|g|kg|t)$ ]]; then
+        if [[ "$line" =~ [0-9]+[[:space:]]*(s|min|h|d|mm|sm|dm|m|km) ]]; then
+            echo "incorrect input data"
+            continue
+        fi
+    fi
+
+    # комбинация длины и времени
+    if [[ "$line" =~ [0-9]+[[:space:]]*(min) && "$line" =~ [0-9]+[[:space:]]*(m ) ]]; then
+        echo "incorrect input data"
+        continue
+    fi
+    
+    if [[ "$line" =~ [0-9]+[[:space:]]*(mg) && "$line" =~ [0-9]+[[:space:]]*(m ) ]]; then
+        echo "incorrect input data"
+        continue
+    fi
+
+    if [[ "$line" =~ [0-9]+[[:space:]]*(dm) && "$line" =~ [0-9]+[[:space:]]*(d ) ]]; then
+        echo "incorrect input data"
+        continue
+    fi
+
+    IFS=' ' read -ra elements <<< "$value"
+
+    # обработка элементов
+    for element in "${elements[@]}"; do
+        case $element in
+            "+")
+                operation+="+"
+                ;;
+            "-")
+                operation+="-"
+                ;;
+            "*")
+                operation+="*"
+                ;;
+            "/")
+                operation+="/"
+                ;;
+            "(")
+                operation+="("
+                ;;
+            ")")
+                operation+=")"
+                ;;
+            *)
+                operation+=" "
+                temp=$(convert_values "$element")
+                if [[ $temp == "error" ]]; then
+                    flag=1
+                fi
+                operation+=$temp
+                operation+=" "
+                ;;
+        esac
+    done
+
+    operation+=" "  # добавляем пробел в конец строки operation для корректной обработки следующей части
+
+    operation=$(echo "$operation" | sed 's/  / + /g')
+
+    operation=$(echo "$operation" | grep -oE '.*[0-9]')
+    flag1=0
+
+    # bc - калькулятор -l с дробями
+    result=$(echo "$operation" | bc -l 2>/dev/null) || flag1=1
+    result=$(echo "$result" | LC_NUMERIC=C awk '{printf ($1 == int($1)) ? "%d\n" : "%.6f\n", $1}')
+    if [[ $flag == 0 && $flag1 == 0 ]]; then
+        echo "$key=$result"
+    else
+        echo "fix expression"
+    fi
+
+
+done < "$file"
