@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Функция для вывода справки
+function show_help() {
+    echo "Использование: normconf.sh [файл]"
+    echo
+    echo "Этот скрипт нормализует значения времени, расстояния и веса в конфигурационном файле."
+    echo
+    echo "Допустимые единицы:"
+    echo "  Время: s - секунды, min - минуты, h - часы, d - дни"
+    echo "  Расстояние: m - метры, cm - сантиметры, dm - дециметры, km - километры"
+    echo "  Масса: kg - килограммы, g - граммы, mg - миллиграммы, t - тонны"
+    echo
+    echo "Пример: Data=4min, Tho=5g, He's=6h, Hugh=7km"
+    exit 0
+}
+
+# Проверка наличия файла
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    show_help
+fi
+
+# Имя конфигурационного файла
+filename="$1"
+if [ -z "$filename" ]; then
+    echo "Ошибка: не указан конфигурационный файл."
+    echo "Используйте $0 --help для получения справки."
+    exit 1
+fi
+
+if [ ! -f "$filename" ]; then
+    echo "Ошибка: файл '$filename' не найден."
+    exit 1
+fi
+
+# Имя нового файла для сохранения изменений
+new_filename="p.txt"
+
+# Универсальная функция для обработки значений
+process_value() {
+    local value="$1"
+
+    if [[ $value =~ ^([0-9]+)([a-zA-Z]+)$ ]]; then
+        number="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+
+        case $unit in
+            # Время
+            s) result="$number" ;;  # Секунды остаются как есть
+            min) result=$(echo "$number * 60" | bc -l) ;;  # Минуты в секунды
+            h) result=$(echo "$number * 3600" | bc -l) ;;  # Часы в секунды
+            d) result=$(echo "$number * 86400" | bc -l) ;;  # Дни в секунды
+
+            # Расстояние
+            m) result="$number" ;;  # Метры остаются как есть
+            cm) result=$(echo "$number / 100" | bc -l) ;;  # Сантиметры в метры
+            dm) result=$(echo "$number / 10" | bc -l) ;;   # Дециметры в метры
+            km) result=$(echo "$number * 1000" | bc -l) ;;  # Километры в метры
+
+            # Масса
+            kg) result="$number" ;;  # Килограммы остаются как есть
+            g) result=$(echo "$number / 1000" | bc -l) ;;  # Граммы в килограммы
+            mg) result=$(echo "$number / 1000000" | bc -l) ;;  # Миллиграммы в килограммы
+            t) result=$(echo "$number * 1000" | bc -l) ;;  # Тонны в килограммы
+
+            # Если единица измерения не распознана
+            *) result="$value" ;;  # Оставляем значение как есть
+        esac
+
+        # Округление результата для веса (kg, g, mg, t)
+        if [[ $unit =~ ^(kg|g|mg|t)$ ]]; then
+            result=$(echo "$result" | awk '{printf "%.3f\n", $1}')
+        fi
+    else
+        result="$value"  # Если формат неправильный, оставляем как есть
+    fi
+}
+
+# Очистим новый файл, чтобы не добавлять данные в старый
+> "$new_filename"
+
+# Обработка файла и запись в новый файл
+while IFS='=' read -r key value; do
+    key=$(echo "$key" | xargs)  # Удаляем пробелы в ключе
+    value=$(echo "$value" | xargs)  # Удаляем пробелы в значении
+
+    # Обрабатываем значение
+    process_value "$value"
+
+    # Записываем измененную строку в новый файл
+    echo "$key=$result" >> "$new_filename"
+done < "$filename"
+
+echo "Конфигурация нормализована и записана в файл '$new_filename'."
